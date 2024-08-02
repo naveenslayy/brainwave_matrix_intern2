@@ -1,0 +1,105 @@
+import tweepy
+import pandas as pd
+
+# Twitter API credentials (replace with your own credentials)
+API_KEY = 'your_api_key'
+API_SECRET_KEY = 'your_api_secret_key'
+ACCESS_TOKEN = 'your_access_token'
+ACCESS_TOKEN_SECRET = 'your_access_token_secret'
+
+# Authenticate to Twitter
+auth = tweepy.OAuth1UserHandler(API_KEY, API_SECRET_KEY, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+api = tweepy.API(auth)
+
+# Function to fetch tweets
+def fetch_tweets(query, count=100):
+    tweets = tweepy.Cursor(api.search, q=query, lang='en', tweet_mode='extended').items(count)
+    data = [{'text': tweet.full_text, 'created_at': tweet.created_at} for tweet in tweets]
+    return pd.DataFrame(data)
+
+# Fetch tweets related to a specific topic
+df = fetch_tweets('Python programming', count=200)
+print(df.head())
+
+import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
+# Download NLTK resources
+nltk.download('punkt')
+nltk.download('stopwords')
+
+def preprocess_text(text):
+    # Convert to lowercase
+    text = text.lower()
+    # Remove URLs
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+    # Remove special characters and digits
+    text = re.sub(r'[^\w\s]', '', text)
+    text = re.sub(r'\d+', '', text)
+    # Tokenize and remove stopwords
+    tokens = word_tokenize(text)
+    tokens = [word for word in tokens if word not in stopwords.words('english')]
+    return ' '.join(tokens)
+
+# Apply preprocessing
+df['cleaned_text'] = df['text'].apply(preprocess_text)
+print(df.head())
+
+
+from textblob import TextBlob
+
+def get_sentiment(text):
+    analysis = TextBlob(text)
+    # Return sentiment polarity (-1 to 1)
+    return analysis.sentiment.polarity
+
+# Apply sentiment analysis
+df['sentiment'] = df['cleaned_text'].apply(get_sentiment)
+
+# Classify sentiment
+def classify_sentiment(score):
+    if score > 0:
+        return 'positive'
+    elif score == 0:
+        return 'neutral'
+    else:
+        return 'negative'
+
+df['sentiment_class'] = df['sentiment'].apply(classify_sentiment)
+print(df.head())
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Convert 'created_at' to datetime and set as index
+df['created_at'] = pd.to_datetime(df['created_at'])
+df.set_index('created_at', inplace=True)
+
+# Resample data by day and calculate average sentiment
+daily_sentiment = df['sentiment'].resample('D').mean()
+
+# Plot sentiment over time
+plt.figure(figsize=(12, 6))
+plt.plot(daily_sentiment.index, daily_sentiment.values, label='Average Sentiment')
+plt.title('Sentiment Trend Over Time')
+plt.xlabel('Date')
+plt.ylabel('Average Sentiment Score')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Word Cloud
+from wordcloud import WordCloud
+
+text = ' '.join(df['cleaned_text'])
+wordcloud = WordCloud(width=800, height=400, background_color ='white').generate(text)
+
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Tweets')
+plt.show()
+
