@@ -1,0 +1,217 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <ctime>
+#include <iomanip>
+
+class BankAccount {
+public:
+    BankAccount(const std::string& owner)
+        : accountNumber(++accountCounter), owner(owner), balance(0.0) {}
+
+    void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            recordTransaction("Deposit", amount);
+        } else {
+            std::cout << "Invalid amount." << std::endl;
+        }
+    }
+
+    bool withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            recordTransaction("Withdrawal", amount);
+            return true;
+        } else {
+            std::cout << "Insufficient funds or invalid amount." << std::endl;
+            return false;
+        }
+    }
+
+    bool transfer(BankAccount& toAccount, double amount) {
+        if (withdraw(amount)) {
+            toAccount.deposit(amount);
+            recordTransaction("Transfer to " + std::to_string(toAccount.getAccountNumber()), amount);
+            toAccount.recordTransaction("Transfer from " + std::to_string(accountNumber), amount);
+            return true;
+        }
+        return false;
+    }
+
+    void printStatement() const {
+        std::cout << "Account Statement for " << owner << std::endl;
+        std::cout << "Account Number: " << accountNumber << std::endl;
+        std::cout << "Balance: " << std::fixed << std::setprecision(2) << balance << std::endl;
+        std::cout << "Transaction History:" << std::endl;
+        for (const auto& transaction : transactions) {
+            std::cout << transaction.date << " - " << transaction.type << " - " << transaction.amount << std::endl;
+        }
+        std::cout << std::endl;
+    }
+
+    int getAccountNumber() const {
+        return accountNumber;
+    }
+
+private:
+    struct Transaction {
+        std::string type;
+        double amount;
+        std::string date;
+
+        Transaction(const std::string& type, double amount)
+            : type(type), amount(amount), date(currentDate()) {}
+
+        static std::string currentDate() {
+            time_t now = time(0);
+            tm* ltm = localtime(&now);
+            char buffer[20];
+            strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", ltm);
+            return std::string(buffer);
+        }
+    };
+
+    static int accountCounter;
+    int accountNumber;
+    std::string owner;
+    double balance;
+    std::vector<Transaction> transactions;
+
+    void recordTransaction(const std::string& type, double amount) {
+        transactions.emplace_back(type, amount);
+    }
+};
+
+int BankAccount::accountCounter = 0;
+
+class User {
+public:
+    User(const std::string& username, const std::string& password)
+        : username(username), password(password), account(new BankAccount(username)) {}
+
+    ~User() {
+        delete account;
+    }
+
+    bool authenticate(const std::string& enteredPassword) const {
+        return password == enteredPassword;
+    }
+
+    BankAccount* getAccount() const {
+        return account;
+    }
+
+    std::string getUsername() const {
+        return username;
+    }
+
+private:
+    std::string username;
+    std::string password;
+    BankAccount* account;
+};
+
+class BankingSystem {
+public:
+    void createUser(const std::string& username, const std::string& password) {
+        if (users.find(username) == users.end()) {
+            users[username] = new User(username, password);
+            std::cout << "User " << username << " created successfully." << std::endl;
+        } else {
+            std::cout << "Username already exists." << std::endl;
+        }
+    }
+
+    User* login(const std::string& username, const std::string& password) {
+        auto it = users.find(username);
+        if (it != users.end() && it->second->authenticate(password)) {
+            std::cout << "Login successful." << std::endl;
+            return it->second;
+        } else {
+            std::cout << "Invalid username or password." << std::endl;
+            return nullptr;
+        }
+    }
+
+    ~BankingSystem() {
+        for (auto& pair : users) {
+            delete pair.second;
+        }
+    }
+
+private:
+    std::map<std::string, User*> users;
+};
+
+int main() {
+    BankingSystem system;
+
+    int choice;
+    std::string username, password;
+
+    while (true) {
+        std::cout << "1. Create Account\n2. Login\n3. Exit\nEnter choice: ";
+        std::cin >> choice;
+
+        if (choice == 1) {
+            std::cout << "Enter username: ";
+            std::cin >> username;
+            std::cout << "Enter password: ";
+            std::cin >> password;
+            system.createUser(username, password);
+        } else if (choice == 2) {
+            std::cout << "Enter username: ";
+            std::cin >> username;
+            std::cout << "Enter password: ";
+            std::cin >> password;
+            User* user = system.login(username, password);
+            if (user) {
+                int userChoice;
+                double amount;
+                std::string recipientUsername;
+
+                while (true) {
+                    std::cout << "1. Deposit\n2. Withdraw\n3. Transfer\n4. Print Statement\n5. Logout\nEnter choice: ";
+                    std::cin >> userChoice;
+
+                    if (userChoice == 1) {
+                        std::cout << "Enter amount to deposit: ";
+                        std::cin >> amount;
+                        user->getAccount()->deposit(amount);
+                    } else if (userChoice == 2) {
+                        std::cout << "Enter amount to withdraw: ";
+                        std::cin >> amount;
+                        user->getAccount()->withdraw(amount);
+                    } else if (userChoice == 3) {
+                        std::cout << "Enter recipient's username: ";
+                        std::cin >> recipientUsername;
+                        std::cout << "Enter amount to transfer: ";
+                        std::cin >> amount;
+
+                        User* recipient = system.login(recipientUsername, "");
+                        if (recipient && recipient->getUsername() != user->getUsername()) {
+                            user->getAccount()->transfer(*recipient->getAccount(), amount);
+                        } else {
+                            std::cout << "Invalid recipient." << std::endl;
+                        }
+                    } else if (userChoice == 4) {
+                        user->getAccount()->printStatement();
+                    } else if (userChoice == 5) {
+                        std::cout << "Logged out." << std::endl;
+                        break;
+                    } else {
+                        std::cout << "Invalid choice." << std::endl;
+                    }
+                }
+            }
+        } else if (choice == 3) {
+            break;
+        } else {
+            std::cout << "Invalid choice." << std::endl;
+        }
+    }
+
+    return 0;
+}
