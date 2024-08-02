@@ -1,0 +1,109 @@
+CREATE TABLE Products (
+    ProductID INT AUTO_INCREMENT PRIMARY KEY,
+    ProductName VARCHAR(255) NOT NULL,
+    Description TEXT,
+    Price DECIMAL(10, 2) NOT NULL,
+    Stock INT NOT NULL,
+    Category VARCHAR(100),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE Customers (
+    CustomerID INT AUTO_INCREMENT PRIMARY KEY,
+    FirstName VARCHAR(100) NOT NULL,
+    LastName VARCHAR(100) NOT NULL,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    PhoneNumber VARCHAR(15),
+    Address TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE Orders (
+    OrderID INT AUTO_INCREMENT PRIMARY KEY,
+    CustomerID INT,
+    OrderDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    TotalAmount DECIMAL(10, 2) NOT NULL,
+    Status VARCHAR(50) DEFAULT 'Pending',
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+CREATE TABLE Order_Items (
+    OrderItemID INT AUTO_INCREMENT PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT NOT NULL,
+    UnitPrice DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ProductID)
+);
+CREATE TABLE Payments (
+    PaymentID INT AUTO_INCREMENT PRIMARY KEY,
+    OrderID INT,
+    PaymentDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Amount DECIMAL(10, 2) NOT NULL,
+    PaymentMethod VARCHAR(50),
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
+CREATE TABLE Payments (
+    PaymentID INT AUTO_INCREMENT PRIMARY KEY,
+    OrderID INT,
+    PaymentDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Amount DECIMAL(10, 2) NOT NULL,
+    PaymentMethod VARCHAR(50),
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
+CREATE TABLE Payments (
+    PaymentID INT AUTO_INCREMENT PRIMARY KEY,
+    OrderID INT,
+    PaymentDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Amount DECIMAL(10, 2) NOT NULL,
+    PaymentMethod VARCHAR(50),
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
+INSERT INTO Products (ProductName, Description, Price, Stock, Category)
+VALUES ('Wireless Mouse', 'Ergonomic wireless mouse with adjustable DPI.', 29.99, 150, 'Electronics');
+INSERT INTO Customers (FirstName, LastName, Email, PhoneNumber, Address)
+VALUES ('John', 'Doe', 'john.doe@example.com', '123-456-7890', '123 Elm Street, Springfield');
+-- Insert the order
+INSERT INTO Orders (CustomerID, TotalAmount, Status)
+VALUES (1, 59.98, 'Pending');
+
+-- Assume the OrderID generated is 1
+
+-- Add items to the order
+INSERT INTO Order_Items (OrderID, ProductID, Quantity, UnitPrice)
+VALUES (1, 1, 2, 29.99);
+INSERT INTO Payments (OrderID, Amount, PaymentMethod)
+VALUES (1, 59.98, 'Credit Card');
+UPDATE Orders
+SET Status = 'Shipped'
+WHERE OrderID = 1;
+SELECT 
+    o.OrderID,
+    o.OrderDate,
+    c.FirstName,
+    c.LastName,
+    p.ProductName,
+    oi.Quantity,
+    oi.UnitPrice,
+    (oi.Quantity * oi.UnitPrice) AS TotalPrice
+FROM 
+    Orders o
+JOIN 
+    Customers c ON o.CustomerID = c.CustomerID
+JOIN 
+    Order_Items oi ON o.OrderID = oi.OrderID
+JOIN 
+    Products p ON oi.ProductID = p.ProductID
+WHERE 
+    o.OrderID = 1;
+SELECT 
+    SUM(p.Amount) AS TotalSales
+FROM 
+    Payments p
+WHERE 
+    p.PaymentDate BETWEEN '2024-01-01' AND '2024-12-31';
+SELECT 
+    ProductName,
+    Stock
+FROM 
+    Products
+WHERE 
+    Stock < 10;
