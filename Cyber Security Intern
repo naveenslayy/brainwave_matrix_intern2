@@ -1,0 +1,81 @@
+import re
+import string
+
+def password_strength(password):
+    # Initialize score
+    score = 0
+    feedback = []
+
+    # Check the length of the password
+    length = len(password)
+    if length < 8:
+        feedback.append("Password is too short. Should be at least 8 characters.")
+    elif 8 <= length <= 12:
+        score += 1
+        feedback.append("Password length is decent.")
+    else:
+        score += 2
+        feedback.append("Password length is good.")
+
+    # Check for uppercase letters
+    if any(c.isupper() for c in password):
+        score += 1
+    else:
+        feedback.append("Consider adding uppercase letters for better security.")
+
+    # Check for lowercase letters
+    if any(c.islower() for c in password):
+        score += 1
+    else:
+        feedback.append("Consider adding lowercase letters for better security.")
+
+    # Check for digits
+    if any(c.isdigit() for c in password):
+        score += 1
+    else:
+        feedback.append("Consider adding digits for better security.")
+
+    # Check for special characters
+    special_characters = set(string.punctuation)
+    if any(c in special_characters for c in password):
+        score += 1
+    else:
+        feedback.append("Consider adding special characters for better security.")
+
+    # Check for common patterns (this is a simple example and can be expanded)
+    common_patterns = ['123', 'abc', 'password', 'qwerty']
+    if any(pattern in password.lower() for pattern in common_patterns):
+        feedback.append("Avoid common patterns like '123', 'abc', 'password', etc.")
+
+    # Check for entropy (complexity estimation)
+    unique_chars = len(set(password))
+    entropy = unique_chars / length
+    if entropy < 0.5:
+        feedback.append("Password lacks uniqueness and complexity. Add more diverse characters.")
+    else:
+        score += 1
+
+    # Determine strength level
+    if score <= 2:
+        strength = "Weak"
+    elif score <= 4:
+        strength = "Moderate"
+    else:
+        strength = "Strong"
+
+    return {
+        "password": password,
+        "score": score,
+        "strength": strength,
+        "feedback": feedback
+    }
+
+# Example usage
+password = input("Enter a password to assess its strength: ")
+result = password_strength(password)
+
+print(f"Password: {result['password']}")
+print(f"Strength: {result['strength']}")
+print("Feedback:")
+for feedback in result['feedback']:
+    print(f"- {feedback}")
